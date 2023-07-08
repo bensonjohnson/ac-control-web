@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>HVAC Controller</title>
+  </head>
+  <body>
+    <h1>HVAC Controller</h1>
+    <h2>Temperature</h2>
+    <p>Current Temperature: {{ current_temperature }}</p>
+    <p>Set Temperature: <span id="set-temp-value">{{ set_temperature }}</span></p>
+    <form id="set-temperature-form">
+      <input type="number" step="0.1" name="set_temperature" value="{{ set_temperature }}">
+      <button type="button" onclick="setTemperature()">Set</button>
+    </form>
+
+    <h2>System Status</h2>
+    <p>Fan State: {{ fan_state }}</p>
+    <p>Cooling State: {{ cooling_state }}</p>
+    <p>Heating State: {{ heating_state }}</p>
+
+    <script>
+      function setTemperature() {
+        var form = document.getElementById("set-temperature-form");
+        var data = new FormData(form);
+
+        fetch('/set_temperature', {
+          method: 'POST',
+          body: data
+        })
+        .then(response => response.json())
+        .then(result => {
+          console.log(result);
+          if (result.message === 'Temperature set successfully') {
+            // Update the set temperature value on the page
+            document.getElementById("set-temp-value").innerText = result.set_temperature;
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+        });
+      }
+    </script>
+  </body>
+</html>
