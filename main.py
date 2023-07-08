@@ -1,14 +1,15 @@
 from flask import Flask, request, jsonify, render_template
 import json
 import paho.mqtt.client as mqtt
+import os
 
 app = Flask(__name__)
-mqtt_broker = "10.0.0.105"
-mqtt_port = 1883  
-mqtt_user = "tempctrl"  
-mqtt_password = "tempctrl"  
-mqtt_topic = "ac_control"  
-temperature_topic = "temperature"  
+mqtt_broker = os.environ.get('MQTT_BROKER', '10.0.0.105')
+mqtt_port = int(os.environ.get('MQTT_PORT', 1883))
+mqtt_user = os.environ['MQTT_USER']
+mqtt_password = os.environ['MQTT_PASSWORD']
+mqtt_topic = os.environ['MQTT_TOPIC']
+temperature_topic = os.environ['TEMPERATURE_TOPIC']
 
 # Set initial values for temperature and set temperature
 current_temperature = 0.0
