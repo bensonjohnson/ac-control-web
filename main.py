@@ -112,6 +112,13 @@ def index():
                            fan_state="ON" if fan_state else "OFF", cooling_state="ON" if cooling_state else "OFF",
                            heating_state="ON" if heating_state else "OFF")
 
+@app.route('/get_hvac_state')
+def get_hvac_state():
+    return jsonify({
+        'fan_state': 'ON' if fan_state else 'OFF',
+        'cooling_state': 'ON' if cooling_state else 'OFF',
+        'heating_state': 'ON' if heating_state else 'OFF'
+    })
 
 if __name__ == '__main__':
     # Start the MQTT client and Flask web API

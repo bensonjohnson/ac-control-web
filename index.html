@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!DOCTYPE html>
 <html>
   <head>
     <title>HVAC Controller</title>
@@ -14,9 +15,9 @@
     </form>
 
     <h2>System Status</h2>
-    <p>Fan State: {{ fan_state }}</p>
-    <p>Cooling State: {{ cooling_state }}</p>
-    <p>Heating State: {{ heating_state }}</p>
+    <p>Fan State: <span id="fan-state"></span></p>
+    <p>Cooling State: <span id="cooling-state"></span></p>
+    <p>Heating State: <span id="heating-state"></span></p>
 
     <script>
       function setTemperature() {
@@ -39,6 +40,23 @@
           console.error('Error:', error);
         });
       }
+
+      function updateHVACState() {
+        fetch('/get_hvac_state')
+          .then(response => response.json())
+          .then(data => {
+            document.getElementById("fan-state").innerText = data.fan_state;
+            document.getElementById("cooling-state").innerText = data.cooling_state;
+            document.getElementById("heating-state").innerText = data.heating_state;
+          })
+          .catch(error => {
+            console.error('Error:', error);
+          });
+      }
+
+      updateHVACState();
+      setInterval(updateHVACState, 5000);
     </script>
   </body>
 </html>
+
