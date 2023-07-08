@@ -74,7 +74,7 @@ def update_hvac_control():
         elif temperature_difference <= -1.0:
             cooling_state = False
             heating_state = True
-            fan_state = False
+            fan_state = True
         else:
             cooling_state = False
             heating_state = False
