@@ -67,6 +67,11 @@ def update_hvac_control():
     # Process the temperature difference and determine the HVAC control states
     temperature_difference = current_temperature - set_temperature
 
+    # Store the previous states for comparison
+    previous_fan_state = fan_state
+    previous_cooling_state = cooling_state
+    previous_heating_state = heating_state
+
     if temperature_difference >= 2.0:
         cooling_state = True
         heating_state = False
@@ -88,7 +93,13 @@ def update_hvac_control():
         heating_state = False
         fan_state = False
 
-    publish_control_command()
+    # Check if any of the states have changed
+    if (
+        previous_fan_state != fan_state
+        or previous_cooling_state != cooling_state
+        or previous_heating_state != heating_state
+    ):
+        publish_control_command()
 
 
 def publish_control_command():
