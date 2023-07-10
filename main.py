@@ -53,8 +53,10 @@ def on_message(client, userdata, msg):
         try:
             set_temperature = float(msg.payload)
             print("Received set temperature from MQTT:", set_temperature)
+            update_hvac_control()  # Update the control logic immediately
         except (ValueError, TypeError):
             print("Invalid set temperature value received from MQTT:", msg.payload)
+
 
 
 def update_hvac_control():
