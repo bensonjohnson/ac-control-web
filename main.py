@@ -36,21 +36,25 @@ mqtt_client.username_pw_set(mqtt_user, mqtt_password)
 def on_connect(client, userdata, flags, rc):
     # Subscribe to the temperature topic when connected to MQTT broker
     mqtt_client.subscribe(temperature_topic)
+    mqtt_client.subscribe('set_temperature')
 
 
 def on_message(client, userdata, msg):
-    global current_temperature
-    # Update the current temperature when a new temperature reading is received
+    global current_temperature, set_temperature
+    # Update the current temperature or set temperature when a new message is received
     if msg.topic == temperature_topic:
         try:
             payload = json.loads(msg.payload.decode())
             current_temperature = float(payload)
+            print("Current temperature updated:", current_temperature)
         except (ValueError, TypeError):
             print("Invalid temperature payload received:", msg.payload)
-        else:
-            # Ignore the value if it is not a valid float
-            print("Current temperature updated:", current_temperature)
-            update_hvac_control()
+    elif msg.topic == 'set_temperature':
+        try:
+            set_temperature = float(msg.payload)
+            print("Received set temperature from MQTT:", set_temperature)
+        except (ValueError, TypeError):
+            print("Invalid set temperature value received from MQTT:", msg.payload)
 
 
 def update_hvac_control():
@@ -93,6 +97,7 @@ def publish_control_command():
     mqtt_client.publish(mqtt_topic, json.dumps(command))
     print("Published control command:", command)
 
+
 @app.route('/set_temperature', methods=['POST'])
 def set_temp():
     global set_temperature
@@ -101,9 +106,14 @@ def set_temp():
     try:
         set_temperature = float(data)
         update_hvac_control()
+
+        # Publish the set temperature to the MQTT topic
+        mqtt_client.publish('set_temperature', str(set_temperature))
+
         return jsonify({"message": "Temperature set successfully", "set_temperature": set_temperature})
     except (ValueError, TypeError):
         return jsonify({"message": "Invalid temperature value"})
+
 
 @app.route('/')
 def index():
@@ -112,6 +122,7 @@ def index():
                            fan_state="ON" if fan_state else "OFF", cooling_state="ON" if cooling_state else "OFF",
                            heating_state="ON" if heating_state else "OFF")
 
+
 @app.route('/get_hvac_state')
 def get_hvac_state():
     return jsonify({
@@ -119,6 +130,7 @@ def get_hvac_state():
         'cooling_state': 'ON' if cooling_state else 'OFF',
         'heating_state': 'ON' if heating_state else 'OFF'
     })
+
 
 if __name__ == '__main__':
     # Start the MQTT client and Flask web API
