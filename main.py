@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, render_template
 import json
 import paho.mqtt.client as mqtt
 import os
+import threading
 
 app = Flask(__name__)
 mqtt_broker = os.environ.get('MQTT_BROKER', '10.0.0.105')
@@ -32,6 +33,9 @@ heating_state = False
 mqtt_client = mqtt.Client()
 mqtt_client.username_pw_set(mqtt_user, mqtt_password)
 
+# Lock for concurrent access to shared variables
+data_lock = threading.Lock()
+
 
 def on_connect(client, userdata, flags, rc):
     # Subscribe to the temperature topic when connected to MQTT broker
@@ -53,38 +57,36 @@ def on_message(client, userdata, msg):
         try:
             set_temperature = float(msg.payload)
             print("Received set temperature from MQTT:", set_temperature)
-            update_hvac_control()  # Update the control logic immediately
+            update_hvac_control()
         except (ValueError, TypeError):
             print("Invalid set temperature value received from MQTT:", msg.payload)
 
 
-
 def update_hvac_control():
-    global fan_state, cooling_state, heating_state
+    global fan_state, cooling_state, heating_state, set_temperature
     # Process the temperature difference and determine the HVAC control states
-    if set_temperature is not None:
-        temperature_difference = current_temperature - set_temperature
+    temperature_difference = current_temperature - set_temperature
 
-        if temperature_difference >= 2.0:
-            cooling_state = True
-            heating_state = False
-            fan_state = True
-        elif temperature_difference >= 1.0:
-            cooling_state = False
-            heating_state = False
-            fan_state = False
-        elif temperature_difference <= -2.0:
-            cooling_state = False
-            heating_state = True
-            fan_state = True
-        elif temperature_difference <= -1.0:
-            cooling_state = False
-            heating_state = True
-            fan_state = True
-        else:
-            cooling_state = False
-            heating_state = False
-            fan_state = False
+    if temperature_difference >= 2.0:
+        cooling_state = True
+        heating_state = False
+        fan_state = True
+    elif temperature_difference >= 1.0:
+        cooling_state = False
+        heating_state = False
+        fan_state = False
+    elif temperature_difference <= -2.0:
+        cooling_state = False
+        heating_state = True
+        fan_state = True
+    elif temperature_difference <= -1.0:
+        cooling_state = False
+        heating_state = True
+        fan_state = True
+    else:
+        cooling_state = False
+        heating_state = False
+        fan_state = False
 
     publish_control_command()
 
@@ -108,10 +110,7 @@ def set_temp():
     try:
         set_temperature = float(data)
         update_hvac_control()
-
-        # Publish the set temperature to the MQTT topic
         mqtt_client.publish('set_temperature', str(set_temperature))
-
         return jsonify({"message": "Temperature set successfully", "set_temperature": set_temperature})
     except (ValueError, TypeError):
         return jsonify({"message": "Invalid temperature value"})
@@ -134,10 +133,23 @@ def get_hvac_state():
     })
 
 
-if __name__ == '__main__':
-    # Start the MQTT client and Flask web API
+def mqtt_thread():
+    # Start the MQTT client
     mqtt_client.on_connect = on_connect
     mqtt_client.on_message = on_message
     mqtt_client.connect(mqtt_broker, mqtt_port, 60)
     mqtt_client.loop_start()
+
+
+def flask_thread():
+    # Start the Flask web API
     app.run(host='0.0.0.0', port=5000)
+
+
+if __name__ == '__main__':
+    # Start MQTT and Flask in separate threads
+    mqtt_thread = threading.Thread(target=mqtt_thread)
+    flask_thread = threading.Thread(target=flask_thread)
+
+    mqtt_thread.start()
+    flask_thread.start()
