@@ -42,26 +42,6 @@ def on_connect(client, userdata, flags, rc):
     mqtt_client.subscribe(temperature_topic)
     mqtt_client.subscribe('set_temperature')
 
-
-def on_message(client, userdata, msg):
-    global current_temperature, set_temperature
-    # Update the current temperature or set temperature when a new message is received
-    if msg.topic == temperature_topic:
-        try:
-            payload = json.loads(msg.payload.decode())
-            current_temperature = float(payload)
-            print("Current temperature updated:", current_temperature)
-        except (ValueError, TypeError):
-            print("Invalid temperature payload received:", msg.payload)
-    elif msg.topic == 'set_temperature':
-        try:
-            set_temperature = float(msg.payload)
-            print("Received set temperature from MQTT:", set_temperature)
-            update_hvac_control()
-        except (ValueError, TypeError):
-            print("Invalid set temperature value received from MQTT:", msg.payload)
-
-
 def update_hvac_control():
     global fan_state, cooling_state, heating_state, set_temperature
     # Process the temperature difference and determine the HVAC control states
@@ -89,6 +69,26 @@ def update_hvac_control():
         fan_state = False
 
     publish_control_command()
+
+
+def on_message(client, userdata, msg):
+    global current_temperature, set_temperature
+    # Update the current temperature or set temperature when a new message is received
+    if msg.topic == temperature_topic:
+        try:
+            payload = json.loads(msg.payload.decode())
+            current_temperature = float(payload)
+            print("Current temperature updated:", current_temperature)
+            update_hvac_control()  # Trigger the update_hvac_control() function
+        except (ValueError, TypeError):
+            print("Invalid temperature payload received:", msg.payload)
+    elif msg.topic == 'set_temperature':
+        try:
+            set_temperature = float(msg.payload)
+            print("Received set temperature from MQTT:", set_temperature)
+            update_hvac_control()
+        except (ValueError, TypeError):
+            print("Invalid set temperature value received from MQTT:", msg.payload)
 
 
 def publish_control_command():
