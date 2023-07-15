@@ -14,7 +14,7 @@ temperature_topic = os.environ['TEMPERATURE_TOPIC']
 
 # Set initial values for temperature and set temperature
 current_temperature = 0.0
-set_temperature = None
+set_temperature = 68
 
 # Relay control command constants
 COOLING_ON = "cooling_on"
