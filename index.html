@@ -1,25 +1,182 @@
 <!DOCTYPE html>
-<!DOCTYPE html>
 <html>
   <head>
     <title>HVAC Controller</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f6f8fb;
+      }
+
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #ffffff;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+
+      h1 {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 20px;
+        color: #333333;
+      }
+
+      h2 {
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #333333;
+      }
+
+      p {
+        font-size: 14px;
+        margin-top: 0;
+        margin-bottom: 10px;
+        color: #333333;
+      }
+
+      form {
+        margin-bottom: 20px;
+      }
+
+      .input-group {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .input-group label {
+        flex-basis: 150px;
+        font-weight: bold;
+        color: #333333;
+      }
+
+      .input-group input {
+        flex-grow: 1;
+        padding: 5px;
+        font-size: 14px;
+        border: 1px solid #cccccc;
+        border-radius: 4px;
+      }
+
+      .button-group {
+        display: flex;
+      }
+
+      .button-group button {
+        flex-grow: 1;
+        padding: 10px;
+        font-size: 14px;
+        font-weight: bold;
+        background-color: #69c1b3;
+        color: #ffffff;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      .button-group button:hover {
+        background-color: #54a89e;
+      }
+
+      .status {
+        margin-bottom: 20px;
+      }
+
+      .status p {
+        display: inline-block;
+        margin-right: 10px;
+      }
+
+      .mode {
+        font-weight: bold;
+        color: #333333;
+      }
+
+      .time-date {
+        font-size: 14px;
+        font-style: italic;
+        color: #666666;
+      }
+    </style>
   </head>
   <body>
-    <h1>HVAC Controller</h1>
-    <h2>Temperature</h2>
-    <p>Current Temperature: {{ current_temperature }}</p>
-    <p>Set Temperature: <span id="set-temp-value">{{ set_temperature }}</span></p>
-    <form id="set-temperature-form">
-      <input type="number" step="0.1" name="set_temperature" value="{{ set_temperature }}">
-      <button type="button" onclick="setTemperature()">Set</button>
-    </form>
-
-    <h2>System Status</h2>
-    <p>Fan State: <span id="fan-state"></span></p>
-    <p>Cooling State: <span id="cooling-state"></span></p>
-    <p>Heating State: <span id="heating-state"></span></p>
-
+    <div class="container">
+      <h1>HVAC Controller</h1>
+      <div class="time-date">
+        <p>Current Time: <span id="current-time"></span></p>
+        <p>Current Date: <span id="current-date"></span></p>
+      </div>
+      <div class="status">
+        <p>Current Temperature: <span id="current-temperature">{{ current_temperature }}</span></p>
+        <p>Set Temperature: <span id="set-temp-value">{{ set_temperature }}</span></p>
+      </div>
+      <h2>System Status</h2>
+      <div class="status">
+        <p>Fan State: <span id="fan-state">{{ fan_state }}</span></p>
+        <p>Cooling State: <span id="cooling-state">{{ cooling_state }}</span></p>
+        <p>Heating State: <span id="heating-state">{{ heating_state }}</span></p>
+      </div>
+      <h2>Mode</h2>
+      <div class="status">
+        <p>Current Mode: <span id="current-mode">{{ current_mode }}</span></p>
+      </div>
+      <form id="set-temperature-form">
+        <div class="input-group">
+          <label for="set-temperature">Set Temperature:</label>
+          <input type="number" step="0.1" id="set-temperature" name="set_temperature" value="{{ set_temperature }}">
+        </div>
+        <div class="button-group">
+          <button type="button" onclick="setTemperature()">Set Temperature</button>
+        </div>
+      </form>
+      <h2>Temperature Thresholds</h2>
+      <div class="status">
+        <p>Nighttime Summer Threshold: <span id="nighttime-summer-threshold">{{ nighttime_summer_threshold }}</span></p>
+        <p>Daytime Winter Threshold: <span id="daytime-winter-threshold">{{ daytime_winter_threshold }}</span></p>
+      </div>
+      <form id="set-thresholds-form">
+        <div class="input-group">
+          <label for="nighttime-summer-threshold">Nighttime Summer Threshold:</label>
+          <input type="number" step="0.1" id="nighttime-summer-threshold" name="nighttime_summer_threshold" value="{{ nighttime_summer_threshold }}">
+        </div>
+        <div class="input-group">
+          <label for="daytime-winter-threshold">Daytime Winter Threshold:</label>
+          <input type="number" step="0.1" id="daytime-winter-threshold" name="daytime_winter_threshold" value="{{ daytime_winter_threshold }}">
+        </div>
+        <div class="button-group">
+          <button type="button" onclick="setThresholds()">Set Thresholds</button>
+        </div>
+      </form>
+    </div>
     <script>
+      function setThresholds() {
+        var form = document.getElementById("set-thresholds-form");
+        var data = new FormData(form);
+
+        fetch('/set_thresholds', {
+          method: 'POST',
+          body: data
+        })
+        .then(response => response.json())
+        .then(result => {
+          console.log(result);
+          if (result.message === 'Thresholds set successfully') {
+            // Update the threshold values on the page
+            document.getElementById("nighttime-summer-threshold").innerText = result.nighttime_summer_threshold;
+            document.getElementById("daytime-winter-threshold").innerText = result.daytime_winter_threshold;
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+        });
+      }
+
       function setTemperature() {
         var form = document.getElementById("set-temperature-form");
         var data = new FormData(form);
@@ -48,6 +205,26 @@
             document.getElementById("fan-state").innerText = data.fan_state;
             document.getElementById("cooling-state").innerText = data.cooling_state;
             document.getElementById("heating-state").innerText = data.heating_state;
+            document.getElementById("current-mode").innerText = data.current_mode;
+          })
+          .catch(error => {
+            console.error('Error:', error);
+          });
+      }
+
+      function updateTimeDate() {
+        var now = new Date();
+        var time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        var date = now.toLocaleDateString();
+        document.getElementById("current-time").innerText = time;
+        document.getElementById("current-date").innerText = date;
+      }
+
+      function updateCurrentTemperature() {
+        fetch('/get_current_temperature')
+          .then(response => response.json())
+          .then(data => {
+            document.getElementById("current-temperature").innerText = data.current_temperature;
           })
           .catch(error => {
             console.error('Error:', error);
@@ -56,7 +233,10 @@
 
       updateHVACState();
       setInterval(updateHVACState, 5000);
+      updateTimeDate();
+      setInterval(updateTimeDate, 1000);
+      updateCurrentTemperature();
+      setInterval(updateCurrentTemperature, 5000);
     </script>
   </body>
 </html>
-

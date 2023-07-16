@@ -3,6 +3,7 @@ import json
 import paho.mqtt.client as mqtt
 import os
 import threading
+from datetime import datetime
 
 app = Flask(__name__)
 mqtt_broker = os.environ.get('MQTT_BROKER', '10.0.0.105')
@@ -15,6 +16,21 @@ temperature_topic = os.environ['TEMPERATURE_TOPIC']
 # Set initial values for temperature and set temperature
 current_temperature = 0.0
 set_temperature = 68
+
+def is_nighttime():
+    now = datetime.now().time()
+    # Define the nighttime range (e.g., from 10 PM to 6 AM)
+    start_time = datetime.strptime("22:00", "%H:%M").time()
+    end_time = datetime.strptime("06:00", "%H:%M").time()
+    return start_time <= now or now <= end_time
+
+def is_daytime():
+    now = datetime.now().time()
+    # Define the daytime range (e.g., from 6 AM to 10 PM)
+    start_time = datetime.strptime("06:00", "%H:%M").time()
+    end_time = datetime.strptime("22:00", "%H:%M").time()
+    return start_time <= now <= end_time
+
 
 # Relay control command constants
 COOLING_ON = "cooling_on"
@@ -29,6 +45,10 @@ fan_state = False
 cooling_state = False
 heating_state = False
 
+# Thresholds
+nighttime_summer_threshold = 65
+daytime_winter_threshold = 75
+
 # MQTT client initialization
 mqtt_client = mqtt.Client()
 mqtt_client.username_pw_set(mqtt_user, mqtt_password)
@@ -42,33 +62,81 @@ def on_connect(client, userdata, flags, rc):
     mqtt_client.subscribe(temperature_topic)
     mqtt_client.subscribe('set_temperature')
 
+
 def update_hvac_control():
     global fan_state, cooling_state, heating_state, set_temperature
     # Process the temperature difference and determine the HVAC control states
     temperature_difference = current_temperature - set_temperature
 
-    if temperature_difference >= 2.0:
-        cooling_state = True
-        heating_state = False
-        fan_state = True
-    elif temperature_difference >= 1.0:
-        cooling_state = False
-        heating_state = False
-        fan_state = False
-    elif temperature_difference <= -2.0:
-        cooling_state = False
-        heating_state = True
-        fan_state = True
-    elif temperature_difference <= -1.0:
-        cooling_state = False
-        heating_state = True
-        fan_state = True
+    # Check if it is summer or winter based on the current month
+    now = datetime.now()
+    month = now.month
+    is_summer = month >= 6 and month <= 8
+    is_winter = month >= 12 or month <= 2
+
+    if is_summer:
+        # Apply summer control logic with extra temperature allowance
+        summer_threshold = set_temperature + nighttime_summer_threshold if is_nighttime() else set_temperature
+        if temperature_difference >= 2.0:
+            cooling_state = True
+            heating_state = False
+            fan_state = True
+        elif temperature_difference >= 1.0:
+            cooling_state = False
+            heating_state = False
+            fan_state = False
+        elif temperature_difference >= 0.0 and current_temperature <= summer_threshold:
+            cooling_state = False
+            heating_state = False
+            fan_state = False
+        else:
+            cooling_state = False
+            heating_state = False
+            fan_state = False
+    elif is_winter:
+        # Apply winter control logic with extra temperature allowance
+        winter_threshold = set_temperature - daytime_winter_threshold if is_daytime() else set_temperature
+        if temperature_difference <= -2.0:
+            cooling_state = False
+            heating_state = True
+            fan_state = True
+        elif temperature_difference <= -1.0:
+            cooling_state = False
+            heating_state = True
+            fan_state = True
+        elif temperature_difference <= 0.0 and current_temperature >= winter_threshold:
+            cooling_state = False
+            heating_state = False
+            fan_state = False
+        else:
+            cooling_state = False
+            heating_state = False
+            fan_state = False
     else:
-        cooling_state = False
-        heating_state = False
-        fan_state = False
+        # Apply standard control logic
+        if temperature_difference >= 2.0:
+            cooling_state = True
+            heating_state = False
+            fan_state = True
+        elif temperature_difference >= 1.0:
+            cooling_state = False
+            heating_state = False
+            fan_state = False
+        elif temperature_difference <= -2.0:
+            cooling_state = False
+            heating_state = True
+            fan_state = True
+        elif temperature_difference <= -1.0:
+            cooling_state = False
+            heating_state = True
+            fan_state = True
+        else:
+            cooling_state = False
+            heating_state = False
+            fan_state = False
 
     publish_control_command()
+
 
 
 def on_message(client, userdata, msg):
@@ -121,7 +189,9 @@ def index():
     # Render the index.html template and pass the current and set temperature values
     return render_template('index.html', current_temperature=current_temperature, set_temperature=set_temperature,
                            fan_state="ON" if fan_state else "OFF", cooling_state="ON" if cooling_state else "OFF",
-                           heating_state="ON" if heating_state else "OFF")
+                           heating_state="ON" if heating_state else "OFF",
+                           nighttime_summer_threshold=nighttime_summer_threshold,
+                           daytime_winter_threshold=daytime_winter_threshold)
 
 
 @app.route('/get_hvac_state')
@@ -131,6 +201,16 @@ def get_hvac_state():
         'cooling_state': 'ON' if cooling_state else 'OFF',
         'heating_state': 'ON' if heating_state else 'OFF'
     })
+
+
+@app.route('/set_thresholds', methods=['POST'])
+def set_thresholds():
+    global nighttime_summer_threshold, daytime_winter_threshold
+    data = request.form
+    nighttime_summer_threshold = float(data.get('nighttime_summer_threshold'))
+    daytime_winter_threshold = float(data.get('daytime_winter_threshold'))
+    update_hvac_control()
+    return jsonify({"message": "Thresholds set successfully"})
 
 
 def mqtt_thread():
