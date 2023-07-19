@@ -102,11 +102,13 @@ def update_hvac_control():
     pid.update(current_temperature)
     pid_value = pid.get_pid_value()
 
-    if pid_value > 0:
+    # Prevent heating if the external temperature is too high
+    if pid_value > 0 and external_temperature < 75:
         cooling_state = False
         heating_state = True
         fan_state = True
-    elif pid_value < 0:
+    # Prevent cooling if the external temperature is too low
+    elif pid_value < 0 and external_temperature > 60:
         cooling_state = True
         heating_state = False
         fan_state = True
