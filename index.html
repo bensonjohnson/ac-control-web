@@ -115,6 +115,7 @@
       <div class="status">
         <p>Current Internal Temperature: <span id="current-temperature">{{ current_temperature }}</span></p>
         <p>Current External Temperature: <span id="external-temperature">{{ external_temperature }}</span></p>
+        <p>Current PID Calculation: <span id="pid-calculation">{{ pid_calculation }}</span></p>
         <p>Set Temperature: <span id="set-temp-value">{{ set_temperature }}</span></p>
       </div>
       <h2>System Status</h2>
@@ -193,12 +194,26 @@
           });
       }
 
+      function updatePIDCalculation() {
+        fetch('/get_pid_calculation')
+          .then(response => response.json())
+          .then(data => {
+            document.getElementById("pid-calculation").innerText = data.pid_calculation;
+          })
+          .catch(error => {
+            console.error('Error:', error);
+          });
+      }
+
+
       updateHVACState();
       setInterval(updateHVACState, 5000);
       updateTimeDate();
       setInterval(updateTimeDate, 1000);
       updateCurrentTemperature();
       setInterval(updateCurrentTemperature, 5000);
+      updatePIDCalculation();
+      setInterval(updatePIDCalculation, 5000);
     </script>
   </body>
 </html>
