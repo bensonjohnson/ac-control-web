@@ -113,7 +113,8 @@
         <p>Current Date: <span id="current-date"></span></p>
       </div>
       <div class="status">
-        <p>Current Temperature: <span id="current-temperature">{{ current_temperature }}</span></p>
+        <p>Current Internal Temperature: <span id="current-temperature">{{ current_temperature }}</span></p>
+        <p>Current External Temperature: <span id="external-temperature">{{ external_temperature }}</span></p>
         <p>Set Temperature: <span id="set-temp-value">{{ set_temperature }}</span></p>
       </div>
       <h2>System Status</h2>
@@ -135,48 +136,8 @@
           <button type="button" onclick="setTemperature()">Set Temperature</button>
         </div>
       </form>
-      <h2>Temperature Thresholds</h2>
-      <div class="status">
-        <p>Nighttime Summer Threshold: <span id="nighttime-summer-threshold">{{ nighttime_summer_threshold }}</span></p>
-        <p>Daytime Winter Threshold: <span id="daytime-winter-threshold">{{ daytime_winter_threshold }}</span></p>
-      </div>
-      <form id="set-thresholds-form">
-        <div class="input-group">
-          <label for="nighttime-summer-threshold">Nighttime Summer Threshold:</label>
-          <input type="number" step="0.1" id="nighttime-summer-threshold" name="nighttime_summer_threshold" value="{{ nighttime_summer_threshold }}">
-        </div>
-        <div class="input-group">
-          <label for="daytime-winter-threshold">Daytime Winter Threshold:</label>
-          <input type="number" step="0.1" id="daytime-winter-threshold" name="daytime_winter_threshold" value="{{ daytime_winter_threshold }}">
-        </div>
-        <div class="button-group">
-          <button type="button" onclick="setThresholds()">Set Thresholds</button>
-        </div>
-      </form>
     </div>
     <script>
-      function setThresholds() {
-        var form = document.getElementById("set-thresholds-form");
-        var data = new FormData(form);
-
-        fetch('/set_thresholds', {
-          method: 'POST',
-          body: data
-        })
-        .then(response => response.json())
-        .then(result => {
-          console.log(result);
-          if (result.message === 'Thresholds set successfully') {
-            // Update the threshold values on the page
-            document.getElementById("nighttime-summer-threshold").innerText = result.nighttime_summer_threshold;
-            document.getElementById("daytime-winter-threshold").innerText = result.daytime_winter_threshold;
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-        });
-      }
-
       function setTemperature() {
         var form = document.getElementById("set-temperature-form");
         var data = new FormData(form);
@@ -225,6 +186,7 @@
           .then(response => response.json())
           .then(data => {
             document.getElementById("current-temperature").innerText = data.current_temperature;
+            document.getElementById("external-temperature").innerText = data.external_temperature;
           })
           .catch(error => {
             console.error('Error:', error);
