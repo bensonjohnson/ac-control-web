@@ -58,11 +58,13 @@ mqtt_password = os.environ['MQTT_PASSWORD']
 mqtt_topic = os.environ['MQTT_TOPIC']
 temperature_topic = os.environ['TEMPERATURE_TOPIC']
 external_temperature_topic = os.environ['EXTERNAL_TEMPERATURE_TOPIC']
+average_temperature_topic = os.environ['AVERAGE_TEMPERATURE_TOPIC']
 
 # Set initial values for temperature and set temperature
 current_temperature = 0.0
 external_temperature = 0.0
 set_temperature = 68
+avg_external_temperature = 0.0  # Global variable to store the average external temperature
 
 # Relay control command constants
 COOLING_ON = "cooling_on"
@@ -88,13 +90,15 @@ data_lock = threading.Lock()
 pid = PID()
 
 def on_connect(client, userdata, flags, rc):
-    # Subscribe to the temperature topic when connected to MQTT broker
+    # Subscribe to the temperature topic and average temperature topic when connected to MQTT broker
     mqtt_client.subscribe(temperature_topic)
     mqtt_client.subscribe(external_temperature_topic)
+    mqtt_client.subscribe(average_temperature_topic)
     mqtt_client.subscribe('set_temperature')
 
 def update_hvac_control():
-    global fan_state, cooling_state, heating_state, set_temperature
+    global fan_state, cooling_state, heating_state, set_temperature, current_temperature, external_temperature, pid, avg_external_temperature
+
     # Process the temperature difference and determine the HVAC control states
     temperature_difference = current_temperature - set_temperature
 
@@ -102,13 +106,18 @@ def update_hvac_control():
     pid.update(current_temperature)
     pid_value = pid.get_pid_value()
 
-    # Prevent heating if the external temperature is too high
-    if pid_value > 0 and external_temperature < 75:
+    # Set the thresholds based on a percentage of the average external temperature
+    threshold_percentage = 0.05  # 5% for example
+    cooling_threshold = avg_external_temperature * (1 - threshold_percentage)
+    heating_threshold = avg_external_temperature * (1 + threshold_percentage)
+
+    # Prevent heating if the external temperature is too high or average temperature is above heating_threshold
+    if pid_value > 0.5 and external_temperature < heating_threshold and current_temperature < set_temperature and external_temperature < set_temperature:
         cooling_state = False
         heating_state = True
         fan_state = True
-    # Prevent cooling if the external temperature is too low
-    elif pid_value < 0 and external_temperature > 60:
+    # Prevent cooling if the external temperature is too low or average temperature is below cooling_threshold
+    elif pid_value < -0.5 and external_temperature > cooling_threshold and current_temperature > set_temperature and external_temperature > set_temperature:
         cooling_state = True
         heating_state = False
         fan_state = True
@@ -120,17 +129,18 @@ def update_hvac_control():
     publish_control_command()
 
 def on_message(client, userdata, msg):
-    global current_temperature, set_temperature, external_temperature
-    # Update the current temperature or set temperature when a new message is received
+    global current_temperature, set_temperature, external_temperature, avg_external_temperature
     if msg.topic == temperature_topic:
+        # Update current temperature
         try:
             payload = json.loads(msg.payload.decode())
             current_temperature = float(payload)
             print("Current temperature updated:", current_temperature)
-            update_hvac_control()  # Trigger the update_hvac_control() function
+            update_hvac_control()
         except (ValueError, TypeError):
             print("Invalid temperature payload received:", msg.payload)
     elif msg.topic == 'set_temperature':
+        # Update set temperature
         try:
             set_temperature = float(msg.payload)
             print("Received set temperature from MQTT:", set_temperature)
@@ -138,12 +148,21 @@ def on_message(client, userdata, msg):
         except (ValueError, TypeError):
             print("Invalid set temperature value received from MQTT:", msg.payload)
     elif msg.topic == external_temperature_topic:
+        # Update external temperature
         try:
             external_temperature = float(msg.payload)
             print("Received external temperature from MQTT:", external_temperature)
             update_hvac_control()
         except (ValueError, TypeError):
             print("Invalid external temperature value received from MQTT:", msg.payload)
+    elif msg.topic == average_temperature_topic:
+        # Update average external temperature
+        try:
+            avg_external_temperature = float(msg.payload)
+            print("Received average external temperature from MQTT:", avg_external_temperature)
+            update_hvac_control()
+        except (ValueError, TypeError):
+            print("Invalid average external temperature value received from MQTT:", msg.payload)
 
 def publish_control_command():
     # Publish the control command to the MQTT topic
@@ -174,7 +193,7 @@ def index():
     return render_template('index.html', current_temperature=current_temperature, set_temperature=set_temperature,
                            fan_state="ON" if fan_state else "OFF", cooling_state="ON" if cooling_state else "OFF",
                            heating_state="ON" if heating_state else "OFF", pid_calculation=pid.get_pid_value(),
-                           external_temperature=external_temperature)
+                           external_temperature=external_temperature, avg_external_temperature=avg_external_temperature)
 
 @app.route('/get_hvac_state')
 def get_hvac_state():
