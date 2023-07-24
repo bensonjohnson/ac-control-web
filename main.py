@@ -112,12 +112,12 @@ def update_hvac_control():
     heating_threshold = avg_external_temperature * (1 + threshold_percentage)
 
     # Prevent heating if the external temperature is too high or average temperature is above heating_threshold
-    if pid_value > 0.25 and external_temperature < heating_threshold and current_temperature < set_temperature:
+    if pid_value > 0.25 and external_temperature < heating_threshold and current_temperature < set_temperature and external_temperature < set_temperature:
         cooling_state = False
         heating_state = True
         fan_state = True
     # Prevent cooling if the external temperature is too low or average temperature is below cooling_threshold
-    elif pid_value < -0.25 and external_temperature > cooling_threshold and current_temperature > set_temperature:
+    elif pid_value < -0.25 and external_temperature > cooling_threshold and current_temperature > set_temperature and external_temperature > set_temperature:
         cooling_state = True
         heating_state = False
         fan_state = True
