@@ -90,7 +90,7 @@ data_lock = threading.Lock()
 pid = PID()
 
 def on_connect(client, userdata, flags, rc):
-    # Subscribe to the temperature topic and average temperature topic when connected to MQTT broker
+    # MQTT topic to subscribe to for hvac_control
     mqtt_client.subscribe(temperature_topic)
     mqtt_client.subscribe(external_temperature_topic)
     mqtt_client.subscribe(average_temperature_topic)
@@ -107,18 +107,23 @@ def update_hvac_control():
     pid_value = pid.get_pid_value()
 
     # Set the thresholds based on a percentage of the average external temperature
-    threshold_percentage = 0.05  # 5% for example
+    threshold_percentage = 0.05 
     cooling_threshold = avg_external_temperature * (1 - threshold_percentage)
     heating_threshold = avg_external_temperature * (1 + threshold_percentage)
 
-    # Prevent heating if the external temperature is too high or average temperature is above heating_threshold
+    # thresholds for heating
     if pid_value > 0.25 and external_temperature < heating_threshold and current_temperature < set_temperature and external_temperature < set_temperature:
         cooling_state = False
         heating_state = True
         fan_state = True
-    # Prevent cooling if the external temperature is too low or average temperature is below cooling_threshold
+    # Thresholds for cooling
     elif pid_value < -0.25 and external_temperature > cooling_threshold and current_temperature > set_temperature and external_temperature > set_temperature:
         cooling_state = True
+        heating_state = False
+        fan_state = True
+    # Run the fan only if the PID value is within a certain range
+    elif -0.15 < pid_value < -0.10 or 0.10 < pid_value < 0.25:
+        cooling_state = False
         heating_state = False
         fan_state = True
     else:
@@ -127,6 +132,7 @@ def update_hvac_control():
         fan_state = False
 
     publish_control_command()
+
 
 def on_message(client, userdata, msg):
     global current_temperature, set_temperature, external_temperature, avg_external_temperature
