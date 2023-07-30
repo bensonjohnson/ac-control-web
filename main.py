@@ -54,12 +54,12 @@ app = Flask(__name__)
 mqtt_broker = os.environ.get('MQTT_BROKER', '10.0.0.105')
 mqtt_port = int(os.environ.get('MQTT_PORT', 1883))
 mqtt_user = os.environ['MQTT_USER']
-mqtt_password = os.environ.get['MQTT_PASSWORD']
-ac_control_topic = os.environ.get['AC_CONTROL_TOPIC']
-temperature_topic = os.environ.get['TEMPERATURE_TOPIC']
-external_temperature_topic = os.environ.get['EXTERNAL_TEMPERATURE_TOPIC']
-average_temperature_topic = os.environ.get['AVERAGE_TEMPERATURE_TOPIC']
-set_temperature_topic = os.environ.get['SET_TEMPERATURE_TOPIC']
+mqtt_password = os.environ['MQTT_PASSWORD']
+ac_control_topic = os.environ['AC_CONTROL_TOPIC']
+temperature_topic = os.environ['TEMPERATURE_TOPIC']
+external_temperature_topic = os.environ['EXTERNAL_TEMPERATURE_TOPIC']
+average_temperature_topic = os.environ['AVERAGE_TEMPERATURE_TOPIC']
+set_temperature_topic = os.environ['SET_TEMPERATURE_TOPIC']
 
 # Set initial values for temperature and set temperature
 current_temperature = 0.0
