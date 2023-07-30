@@ -60,6 +60,7 @@ temperature_topic = os.environ['TEMPERATURE_TOPIC']
 external_temperature_topic = os.environ['EXTERNAL_TEMPERATURE_TOPIC']
 average_temperature_topic = os.environ['AVERAGE_TEMPERATURE_TOPIC']
 set_temperature_topic = os.environ['SET_TEMPERATURE_TOPIC']
+temp_percentage = os.environ['TEMP_THRESHOLD']
 
 # Set initial values for temperature and set temperature
 current_temperature = 0.0
@@ -108,7 +109,7 @@ def update_hvac_control():
     pid_value = pid.get_pid_value()
 
     # Set the thresholds based on a percentage of the average external temperature
-    threshold_percentage = 0.05 
+    threshold_percentage = (temp_percentage/100)
     cooling_threshold = avg_external_temperature * (1 - threshold_percentage)
     heating_threshold = avg_external_temperature * (1 + threshold_percentage)
 
@@ -122,11 +123,11 @@ def update_hvac_control():
         cooling_state = True
         heating_state = False
         fan_state = True
-    # Run the fan only if the PID value is within a certain range
-    #elif -0.15 < pid_value < -0.10 or 0.10 < pid_value < 0.25:
-    #    cooling_state = False
-    #    heating_state = False
-    #    fan_state = True
+    # Run the fan only if the PID value is greater than 1 or less than -1
+    elif abs(pid_value) > 1:
+        cooling_state = False
+        heating_state = False
+        fan_state = True
     else:
         cooling_state = False
         heating_state = False
