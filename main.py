@@ -55,10 +55,11 @@ mqtt_broker = os.environ.get('MQTT_BROKER', '10.0.0.105')
 mqtt_port = int(os.environ.get('MQTT_PORT', 1883))
 mqtt_user = os.environ['MQTT_USER']
 mqtt_password = os.environ['MQTT_PASSWORD']
-mqtt_topic = os.environ['MQTT_TOPIC']
+ac_control_topic = os.environ['AC_CONTROL_TOPIC']
 temperature_topic = os.environ['TEMPERATURE_TOPIC']
 external_temperature_topic = os.environ['EXTERNAL_TEMPERATURE_TOPIC']
 average_temperature_topic = os.environ['AVERAGE_TEMPERATURE_TOPIC']
+set_temperature_topic = os.environ['SET_TEMPERATURE_TOPIC']
 
 # Set initial values for temperature and set temperature
 current_temperature = 0.0
@@ -94,7 +95,7 @@ def on_connect(client, userdata, flags, rc):
     mqtt_client.subscribe(temperature_topic)
     mqtt_client.subscribe(external_temperature_topic)
     mqtt_client.subscribe(average_temperature_topic)
-    mqtt_client.subscribe('set_temperature')
+    mqtt_client.subscribe(set_temperature_topic)
 
 def update_hvac_control():
     global fan_state, cooling_state, heating_state, set_temperature, current_temperature, external_temperature, pid, avg_external_temperature
@@ -177,7 +178,7 @@ def publish_control_command():
         "cooling": COOLING_ON if cooling_state else COOLING_OFF,
         "heating": HEATING_ON if heating_state else HEATING_OFF
     }
-    mqtt_client.publish(mqtt_topic, json.dumps(command))
+    mqtt_client.publish(ac_control_topic, json.dumps(command))
     print("Published control command:", command)
 
 @app.route('/set_temperature', methods=['POST'])
