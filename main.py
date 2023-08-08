@@ -124,7 +124,7 @@ def update_hvac_control():
         heating_state = False
         fan_state = True
     #Run the fan only if the PID value is greater than 2 or less than -2
-    elif abs(pid_value) > .45:
+    elif abs(pid_value) > .5:
         cooling_state = False
         heating_state = False
         fan_state = True
