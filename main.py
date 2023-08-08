@@ -60,13 +60,13 @@ temperature_topic = os.environ['TEMPERATURE_TOPIC']
 external_temperature_topic = os.environ['EXTERNAL_TEMPERATURE_TOPIC']
 average_temperature_topic = os.environ['AVERAGE_TEMPERATURE_TOPIC']
 set_temperature_topic = os.environ['SET_TEMPERATURE_TOPIC']
-temp_percentage = os.environ['TEMP_THRESHOLD']
+threshold_percentage = os.environ['TEMP_THRESHOLD']
 
 # Set initial values for temperature and set temperature
 current_temperature = 0.0
 external_temperature = 0.0
 set_temperature = 70
-avg_external_temperature = 0.0  # Global variable to store the average external temperature
+avg_external_temperature = 0.0
 
 # Relay control command constants
 COOLING_ON = "cooling_on"
@@ -109,7 +109,7 @@ def update_hvac_control():
     pid_value = pid.get_pid_value()
 
     # Set the thresholds based on a percentage of the average external temperature
-    threshold_percentage = 0.05 
+    threshold_percentage = 0.15 
     cooling_threshold = avg_external_temperature * (1 - threshold_percentage)
     heating_threshold = avg_external_temperature * (1 + threshold_percentage)
 
