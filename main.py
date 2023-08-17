@@ -67,6 +67,7 @@ current_temperature = 0.0
 external_temperature = 0.0
 set_temperature = 70
 avg_external_temperature = 0.0
+fan_start_time = 0
 
 # Relay control command constants
 COOLING_ON = "cooling_on"
@@ -99,7 +100,7 @@ def on_connect(client, userdata, flags, rc):
     mqtt_client.subscribe(set_temperature_topic)
 
 def update_hvac_control():
-    global fan_state, cooling_state, heating_state, set_temperature, current_temperature, external_temperature, pid, avg_external_temperature
+    global fan_state, cooling_state, heating_state, set_temperature, current_temperature, external_temperature, pid, avg_external_temperature, fan_start_time
 
     # Process the temperature difference and determine the HVAC control states
     temperature_difference = current_temperature - set_temperature
@@ -123,15 +124,20 @@ def update_hvac_control():
         cooling_state = True
         heating_state = False
         fan_state = True
-    #Run the fan only if the PID value is greater than 2 or less than -2
+    # Run the fan only if the PID value is greater than .5 or less than -.5
     elif abs(pid_value) > .5:
         cooling_state = False
         heating_state = False
         fan_state = True
+        fan_start_time = time.time()
     else:
-        cooling_state = False
-        heating_state = False
-        fan_state = False
+        # Check if the fan has been on for at least 5 minutes (300 seconds)
+        if fan_state and time.time() - fan_start_time < 300:
+            pass  # Keep the fan on
+        else:
+            cooling_state = False
+            heating_state = False
+            fan_state = False
 
     publish_control_command()
 
