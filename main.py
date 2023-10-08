@@ -100,7 +100,7 @@ def on_connect(client, userdata, flags, rc):
     mqtt_client.subscribe(set_temperature_topic)
 
 def update_hvac_control():
-    global fan_state, cooling_state, heating_state, set_temperature, current_temperature, external_temperature, pid, avg_external_temperature, fan_start_time, cooling_start_time
+    global fan_state, cooling_state, heating_state, set_temperature, current_temperature, external_temperature, pid, avg_external_temperature, fan_start_time, cooling_start_time, heating_start_time
 
     # Process the temperature difference and determine the HVAC control states
     temperature_difference = current_temperature - set_temperature
@@ -119,6 +119,7 @@ def update_hvac_control():
         cooling_state = False
         heating_state = True
         fan_state = True
+        heating_start_time = time.time()  # Start counting the heating duration
     # Thresholds for cooling
     elif pid_value < -0.25 and external_temperature > cooling_threshold and current_temperature > set_temperature:
         cooling_state = True
@@ -137,6 +138,8 @@ def update_hvac_control():
             pass  # Keep the fan on
         elif cooling_state and time.time() - cooling_start_time < 1200:  # 20 minutes in seconds
             pass  # Keep the cooling on
+        elif heating_state and time.time() - heating_start_time < 300:  # 5 minutes in seconds
+            pass  # Keep the heating on
         else:
             cooling_state = False
             heating_state = False
