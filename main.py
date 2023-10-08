@@ -99,7 +99,6 @@ def on_connect(client, userdata, flags, rc):
     mqtt_client.subscribe(average_temperature_topic)
     mqtt_client.subscribe(set_temperature_topic)
 
-import time  # import the time module if it's not already imported
 
 def update_hvac_control():
     global fan_state, cooling_state, heating_state, set_temperature, current_temperature, external_temperature, pid, avg_external_temperature, fan_start_time, cooling_start_time, heating_start_time  # Added heating_start_time
