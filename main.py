@@ -134,12 +134,11 @@ def update_hvac_control():
         fan_state = True
         fan_start_time = time.time()
     else:
-        # Check if the fan has been on for at least 5 minutes (300 seconds)
         if fan_state and time.time() - fan_start_time < 300:
             pass  # Keep the fan on
-        elif cooling_state and time.time() - cooling_start_time < 1200:  # 20 minutes in seconds
+        elif cooling_state and time.time() - cooling_start_time < 300:
             pass  # Keep the cooling on
-        elif heating_state and time.time() - heating_start_time < 300:  # 5 minutes in seconds
+        elif heating_state and time.time() - heating_start_time < 300: 
             pass  # Keep the heating on
         else:
             cooling_state = False
