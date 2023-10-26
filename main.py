@@ -111,7 +111,7 @@ def update_hvac_control():
     pid_value = pid.get_pid_value()
 
     # Set the thresholds based on a percentage of the average external temperature
-    threshold_percentage = 0.05 
+    threshold_percentage = 0.10 
     cooling_threshold = avg_external_temperature * (1 - threshold_percentage)
     heating_threshold = avg_external_temperature * (1 + threshold_percentage)
 
