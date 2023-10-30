@@ -1,8 +1,8 @@
-import threading
-import json
-import os
 from flask import Flask, request, jsonify, render_template
+import json
 import paho.mqtt.client as mqtt
+import os
+import threading
 from datetime import datetime
 import time
 
@@ -16,41 +16,16 @@ class PID:
         self.last_time = self.current_time
         self.clear()
 
-    
-    def save_state(self, file_path="/etc/hvac/pid-state.json"):
-        state = {
-            "SetPoint": self.SetPoint,
-            "PTerm": self.PTerm,
-            "ITerm": self.ITerm,
-            "DTerm": self.DTerm,
-            "last_time": self.last_time,
-            "last_error": self.last_error,
-            "output": self.output
-        }
-        with open(file_path, "w") as f:
-            json.dump(state, f)
-
-    def load_state(self, file_path="/etc/hvac/pid-state.json"):
-        if os.path.exists(file_path):
-            with open(file_path, "r") as f:
-                state = json.load(f)
-            self.SetPoint = state.get("SetPoint", 0.0)
-            self.PTerm = state.get("PTerm", 0.0)
-            self.ITerm = state.get("ITerm", 0.0)
-            self.DTerm = state.get("DTerm", 0.0)
-            self.last_time = state.get("last_time", time.time())
-            self.last_error = state.get("last_error", 0.0)
-            self.output = state.get("output", 0.0)
     def clear(self):
-            self.SetPoint = 0.0
-            self.PTerm = 0.0
-            self.ITerm = 0.0
-            self.DTerm = 0.0
-            self.last_error = 0.0
-            # Windup Guard
-            self.int_error = 0.0
-            self.windup_guard = 20.0
-            self.output = 0.0
+        self.SetPoint = 0.0
+        self.PTerm = 0.0
+        self.ITerm = 0.0
+        self.DTerm = 0.0
+        self.last_error = 0.0
+        # Windup Guard
+        self.int_error = 0.0
+        self.windup_guard = 20.0
+        self.output = 0.0
 
     def update(self, feedback_value):
         error = self.SetPoint - feedback_value
@@ -60,16 +35,17 @@ class PID:
         if (delta_time >= self.sample_time):
             self.PTerm = self.Kp * error
             self.ITerm += error * delta_time
-        if (self.ITerm < -self.windup_guard):
-            self.ITerm = -self.windup_guard
-        elif (self.ITerm > self.windup_guard):
-            self.ITerm = self.windup_guard
-        self.DTerm = 0.0
-        if delta_time > 0:
-            self.DTerm = delta_error / delta_time
-        self.last_time = self.current_time
-        self.last_error = error
-        self.output = self.PTerm + (self.Ki * self.ITerm) + (self.Kd * self.DTerm)
+            if (self.ITerm < -self.windup_guard):
+                self.ITerm = -self.windup_guard
+            elif (self.ITerm > self.windup_guard):
+                self.ITerm = self.windup_guard
+            self.DTerm = 0.0
+            if delta_time > 0:
+                self.DTerm = delta_error / delta_time
+            # Remember last time and last error for next calculation
+            self.last_time = self.current_time
+            self.last_error = error
+            self.output = self.PTerm + (self.Ki * self.ITerm) + (self.Kd * self.DTerm)
 
     def get_pid_value(self):
         return self.output
@@ -272,17 +248,3 @@ if __name__ == '__main__':
 
     mqtt_thread.start()
     flask_thread.start()
-
-# Function to save PID state periodically
-def periodic_save(pid_controller, interval=900):  # 900 seconds = 15 minutes
-    pid_controller.save_state()
-    threading.Timer(interval, periodic_save, [pid_controller]).start()
-
-# Initialize PID
-pid_controller = PID()
-
-# Load saved state
-pid_controller.load_state()
-
-# Start periodic save
-threading.Timer(900, periodic_save, [pid_controller]).start()
