@@ -60,16 +60,17 @@ class PID:
         if (delta_time >= self.sample_time):
             self.PTerm = self.Kp * error
             self.ITerm += error * delta_time
-        if (self.ITerm < -self.windup_guard):
-            self.ITerm = -self.windup_guard
-        elif (self.ITerm > self.windup_guard):
-            self.ITerm = self.windup_guard
-        self.DTerm = 0.0
-        if delta_time > 0:
-            self.DTerm = delta_error / delta_time
-        self.last_time = self.current_time
-        self.last_error = error
-        self.output = self.PTerm + (self.Ki * self.ITerm) + (self.Kd * self.DTerm)
+            if (self.ITerm < -self.windup_guard):
+                self.ITerm = -self.windup_guard
+            elif (self.ITerm > self.windup_guard):
+                self.ITerm = self.windup_guard
+            self.DTerm = 0.0
+            if delta_time > 0:
+                self.DTerm = delta_error / delta_time
+            # Remember last time and last error for next calculation
+            self.last_time = self.current_time
+            self.last_error = error
+            self.output = self.PTerm + (self.Ki * self.ITerm) + (self.Kd * self.DTerm)
 
     def get_pid_value(self):
         return self.output
